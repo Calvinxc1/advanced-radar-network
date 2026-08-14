@@ -24,24 +24,34 @@ local function item_icon(tint)
   }
 end
 
--- Temporary placeholder art for observation radars' 2x2 footprint. The icon
--- and the placed entity graphic are separate images -- the icon is a clean
--- isolated "product shot" appropriate for inventory/tech tree slots, while
--- the world sprite uses flatter lighting and a grounded contact shadow so
--- it doesn't look like a floating icon sitting in the factory. Swap both
--- for hand-authored art later.
+-- Placeholder art for observation radars' 2x2 footprint, replaced 2026-08-14
+-- with a procedural Blender 4.3.2 model (see obs-radar-script.py) rendered
+-- with two fixed orthographic cameras -- a three-quarter "product shot" for
+-- the icon, and an almost-overhead, front-aligned camera for the placed
+-- entity. Because both the camera and the base geometry are locked in the
+-- scene (only the dish/trunnion assembly rotates between frames), this
+-- supersedes two earlier AI-image approaches that both fought the same
+-- problem from different angles: a literal 2D in-plane spin and a
+-- squash/mirror-flip "coin spin" trick derived every angle from a single
+-- source layer and looked wrong for an obliquely-viewed disc; a later
+-- 16-keyframe AI turntable got the angles right but wasn't a pixel-locked
+-- camera, so the base drifted a few px frame to frame and needed per-frame
+-- re-centering. A true 3D render sidesteps both failure modes at the
+-- source. See .governance/local/factorio-workflow.yaml before revisiting
+-- this again.
 local observation_radar_icon_image = "__advanced-radar-network__/graphics/entity/observation-radar/observation-radar.png"
-local observation_radar_icon_image_size = 300
--- Static, non-animated for now. Two rotation approaches were tried and
--- rejected on 2026-08-14: a literal 2D in-plane rotation (an obliquely
--- viewed disc tumbles into wrong-looking orientations), and a horizontal
--- squash-and-mirror-flip "spinning coin" trick (looked like the object was
--- just being flattened and flipped, especially the linear off-axis mount
--- arm, which doesn't transform believably under either technique). See
--- .governance/local/factorio-workflow.yaml before attempting this again.
+local observation_radar_icon_image_size = 256
+-- Rotating dish: a direction_count/line_length spritesheet, the same
+-- technique vanilla radar.png itself uses (direction_count = 64,
+-- line_length = 8) -- Factorio steps through discrete frames rather than
+-- blending, so no cross-fade is needed. 16 frames at exactly 22.5 degrees
+-- apart (frame N = N * 22.5 deg, 0..337.5), a full 360 degree sweep by
+-- construction since the render script drives the rotation directly.
 local observation_radar_world_image = "__advanced-radar-network__/graphics/entity/observation-radar/observation-radar-world.png"
-local observation_radar_world_image_width = 335
-local observation_radar_world_image_height = 360
+local observation_radar_world_image_width = 256
+local observation_radar_world_image_height = 256
+local observation_radar_world_direction_count = 16
+local observation_radar_world_line_length = 4
 
 local function observation_icon(tier)
   return {
@@ -71,20 +81,25 @@ local function tint_animation(animation, tint)
   return tinted
 end
 
--- scale/shift are derived, not eyeballed: object bbox in the 335x360 file
--- is (41,58)-(293,360), object flush with the canvas bottom. scale puts the
--- object's true width at exactly 2 tiles edge-to-edge; shift.y puts the
--- object's bottom on the 2x2 footprint's bottom edge (selection_box bottom
--- at y=+1.0). See .governance/local/factorio-workflow.yaml for the full
--- derivation.
+-- scale/shift are derived, not eyeballed. Because the camera and base are
+-- both fixed in the Blender scene, every one of the 16 frames shares the
+-- same bbox: (65,27)-(191,204) at direction 0 loosest, narrowing only in
+-- height as the dish's tilt-exposed height changes with rotation phase --
+-- width and the bottom edge (204) never move, since the base itself never
+-- rotates or resizes. scale puts that shared 126px width at exactly 2
+-- tiles edge-to-edge; shift.y accounts for the object's bottom sitting 52px
+-- above the 256px canvas's own bottom edge (not flush) and puts it on the
+-- 2x2 footprint's bottom edge (selection_box bottom at y=+1.0). See
+-- .governance/local/factorio-workflow.yaml for the full derivation.
 local function observation_pictures(tier)
   return tint_animation({
     filename = observation_radar_world_image,
     width = observation_radar_world_image_width,
     height = observation_radar_world_image_height,
-    scale = 0.254,
-    shift = { 0, -0.429 },
-    direction_count = 1,
+    scale = 0.507937,
+    shift = { 0, -0.206345 },
+    direction_count = observation_radar_world_direction_count,
+    line_length = observation_radar_world_line_length,
   }, observation_tints[tier])
 end
 
