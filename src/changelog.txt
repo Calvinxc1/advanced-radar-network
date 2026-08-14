@@ -1,0 +1,14 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+Date: 2026.08.14
+  Changes
+    - Graduated the tiered observation and reconnaissance radar progression out of the tweak-heap incubation mod into its own standalone Advanced Radar Network mod.
+    - Observation Radar I replaces the vanilla radar entity, item, recipe, and technology in place, so new and existing games transition straight from vanilla radar into it. The vanilla technology's prerequisites and cost are unchanged; only the localised text and the entity's stats/graphics change.
+    - Added Observation Radar II and III as new tiers for compact, always-on local visibility with no long-range scanning.
+    - Added a fully independent three-tier Reconnaissance radar branch (I, II, III) for long-distance sector scanning with a minimal local visibility floor; Reconnaissance I is unlocked as a parallel choice to Observation II, not tied to the vanilla radar tech position.
+    - Observation radars use a 2x2 footprint (collision_box matches vanilla steel-furnace's real 2x2 value) via matching next_upgrade chains across all three tiers (Factorio requires every step in a next_upgrade chain to share the same bounding box); reconnaissance radars keep vanilla's original 3x3 footprint. Observation radars use temporary placeholder art, with a separate icon and world sprite matching vanilla's own convention: the icon uses a shallow 3/4 angle, the world sprite uses the same steep near-overhead camera angle and the same materials/panel/rivet design language as the icon, rendered with more physical bulk and mass so it reads as a placed structure rather than a floating inventory icon. The world sprite's true width is scaled to exactly 2 tiles edge-to-edge and it is deliberately taller than its footprint, extending into the tile behind it the way vanilla radar's own oversized dish does. Reconnaissance radars keep vanilla's layered dish+shadow animation, tinted, at vanilla's original footprint. No third-party asset mod dependency.
+
+  Bugfixes
+    - Fixed Observation Radar I no longer having valid icon/icon_size fields on the vanilla radar prototype, which broke other mods (observed with Toxic Biters' infected radar) that read data.raw.radar.radar.icon/icon_size directly when building their own prototypes from the vanilla radar.
+    - Declared an optional dependency on Toxic Biters so it loads first, ensuring its read of the vanilla radar prototype happens before this mod mutates it.
+    - Fixed the observation radar world sprite's base floating visibly above the bottom of its 2x2 footprint. shift.y is now derived directly from the selection_box geometry instead of an inherited offset left over from an earlier, differently-sized version of the sprite.

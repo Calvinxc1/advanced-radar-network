@@ -1,0 +1,15 @@
+schema: local_governance_status
+schema_version: 1
+canonical_agent_name: Advanced Radar Network Factorio Modding Agent
+agent_kind: factorio_modding_agent
+active_governance_branch: enforcement-redesign/factorio-modding-agent/main
+current_active_canon_version: enforcement-redesign/factorio-modding-agent/main
+current_generalized_canon_version: enforcement-redesign/coding-agent/main
+source_repository_or_path: gitea.infra.newedenhomestead.net:ai-projects/ai-governance.git
+governance_source_branch: enforcement-redesign/factorio-modding-agent/main
+governance_source_commit: 2e5f105965930e71ee12920ed4c3eabd61179b9f
+runtime_surface: claude_code_cli
+code_authority: factorio_mod_workspace_with_explicit_user_authorization
+last_verified_at: 2026-08-14
+agent_declared_status: current
+notes: "Repo created 2026-08-14 as the standalone graduation target for the tiered observation/reconnaissance radar progression previously incubated in tweak-heap. Governance tree copied from advanced-fluid-infrastructure, the closest existing sibling (standalone MIT mod with a single optional compatibility dependency), then adapted for this mod's own facts below."

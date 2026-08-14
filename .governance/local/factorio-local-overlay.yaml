@@ -1,0 +1,53 @@
+schema: factorio_local_overlay
+schema_version: 1
+mod_name: advanced-radar-network
+canonical_agent_name: Advanced Radar Network Factorio Modding Agent
+workspace_path: /home/jcherry/Documents/git/factorio-mods/advanced-radar-network
+metadata_path: src/info.json
+namespace_prefixes:
+  - arn_
+  - __advanced-radar-network__/
+dependency_stack:
+  - base >= 2.1.0
+  - space-age >= 2.1.0
+optional_dependencies:
+  - Toxic_biters
+upstream_or_fork_source: Standalone tiered radar progression for Factorio 2.1 and Space Age, graduated from tweak-heap's incubation layer; inspired by the K2/Space Exploration observation-vs-scanning radar split but original code.
+scope_boundaries:
+  - Owns the radar prototypes, progression, technologies, recipes, items, and entities split into an observation branch (local always-on visibility, no long-range scanning) and a reconnaissance branch (long-range sector scanning, minimal local visibility).
+  - Keep this repository focused on radar detection/visibility gameplay.
+  - Keep unrelated gameplay systems out of this repository unless Jason explicitly approves a scope expansion.
+release_target: Factorio 2.1 and Space Age mod releases.
+changelog_format: Factorio mod portal changelog in src/changelog.txt.
+version_policy_path: docs/semantic-versioning.md
+release_process_path: docs/release-process.md
+contribution_policy_path: CONTRIBUTING.md
+validation_available:
+  json: true
+  lua_syntax: true
+  lint: false
+  format: false
+  factorio_load: true
+workspace_specific_rules:
+  - Run ./scripts/validate.sh for full local validation when luac, Python, and Factorio validation prerequisites are available.
+  - Factorio load validation requires FACTORIO_BIN or a discoverable Factorio binary and a mods-directory symlink from the mod name to src.
+  - Use src/info.json as the release version source of truth; main deployment creates Gitea and GitHub releases and uploads the packaged mod zip to the Factorio mod portal when that version changes on main, with retry behavior for missing public release destinations after a partially failed release.
+  - Follow docs/semantic-versioning.md before changing src/info.json or preparing release work.
+  - Use dev as the long-lived integration branch and main as the release branch.
+  - Use feature/* branches from dev for day-to-day implementation; merge feature branches back to dev.
+  - Promote dev to main through short-lived release/* branches; do not open recurring dev-to-main pull requests.
+  - Use hotfix/* branches from main for urgent release-line fixes, then sync hotfix results back to dev and any active release branch that needs the fix.
+  - Keep the top src/changelog.txt Version entry synchronized with src/info.json; scripts/validate.sh enforces this.
+  - Keep prototype and locale names under the arn_ prefix unless Jason explicitly approves a namespace migration.
+  - Do not add a dependency, optional or required, on Krastorio2Assets or any other Krastorio2-published mod. Jason declared this a hard boundary on 2026-08-14 given the Krastorio2 maintainer's stated position on AI-assisted mods; this mod must stay entirely independent of that mod family.
+  - Observation Radar I (not Reconnaissance) owns the vanilla data.raw.radar.radar entity/item/technology/recipe mutation-in-place role. Jason confirmed this direction on 2026-08-14: the close-visibility/no-scanning branch replaces vanilla radar; Reconnaissance is a fully independent three-tier line with its own new Reconnaissance I prototype, unlocked as a parallel choice to Observation II rather than a prerequisite of it.
+  - When mutating the shared vanilla data.raw.radar.radar entity/item/technology/recipe in place (Observation I), never nil out the singular icon/icon_size fields even after setting icons. Other mods (observed: Toxic Biters' tb_infected_radar) read data.raw.radar.radar.icon/icon_size directly when building their own prototypes from the vanilla radar, and nil-ing those fields breaks their load even though this mod's own rendering only needs icons. Adding new arn_-prefixed prototypes has no such risk since nothing else references those names.
+  - src/info.json declares "? Toxic_biters" so Toxic Biters loads first and its tb_infected_radar read of data.raw.radar.radar.icon/.icon_size happens against a known-good, not-yet-mutated vanilla radar. Jason confirmed on 2026-08-14 he wants Toxic Biters compatibility kept even though tweak-heap itself stays disabled in his local install.
+  - "Factorio requires every step in a next_upgrade chain to share the same bounding box (confirmed by the validation error 'next_upgrade target must have the same bounding box'). This is why Observation I uses the same 2x2 footprint and placeholder art as Observation II/III rather than staying vanilla-sized -- it has to match them to chain via next_upgrade."
+  - Observation radars use a 2x2 collision_box/selection_box (Jason requested this explicitly on 2026-08-14, up from an initial 1x1 pass). collision_box {{-0.7,-0.7},{0.7,0.7}} matches vanilla steel-furnace's own real 2x2 collision box rather than an invented number; selection_box is a clean grid-aligned {{-1,-1},{1,1}}. If the footprint changes again, look up a comparable real vanilla entity's collision_box first rather than guessing.
+  - Reconnaissance's entities must deepcopy prototypes/radar/vanilla_snapshot.lua (a pristine copy of vanilla radar captured before Observation I mutates data.raw.radar.radar in place), not the live data.raw.radar["radar"]. Deepcopying the live prototype after Observation I has mutated it silently inherits Observation I's current footprint and placeholder art instead of vanilla's original 3x3 footprint and layered dish+shadow animation -- this actually happened once during development and was caught by inspecting a --dump-data JSON dump, not by Factorio's own load validation, which does not catch this class of mistake.
+migration_notes:
+  - This mod graduated the tiered observation/reconnaissance radar progression out of tweak-heap (src/prototypes/radars.lua) on 2026-08-14, following the same graduation pattern used for ev-logistics-aai-loader.
+  - Entity/item/recipe/technology names were renamed from tweak-heap's th- hyphenated prefix to this repo's arn_ underscored prefix, matching the afi_/aeg_ convention used by sibling advanced-* mods.
+  - tweak-heap's original code had an optional Krastorio2Assets integration (sentinel graphics for observation radars). That integration was removed entirely on 2026-08-14, not carried forward as optional, per the Krastorio2Assets boundary above.
+notes: Local facts are based on src/info.json, README.md, CONTRIBUTING.md, docs/semantic-versioning.md, docs/release-process.md, scripts/validate.sh, scripts/factorio-validate.sh, and the tweak-heap graduation history.

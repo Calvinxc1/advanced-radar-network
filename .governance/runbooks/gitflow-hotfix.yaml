@@ -1,0 +1,113 @@
+id: gitflow_hotfix_runbook
+status: ratified
+scope: coding_agents
+summary: On-demand runbook for a coding agent performing a GitFlow hotfix for a specific verified production bug.
+applies_to: Urgent fix for a specific verified bug, branched from the production target branch, merged back to it, then synced to the origin.
+does_not_cover: Normal releases, which require the deployment runbook.
+relationship_to_deployment_runbook: The hotfix runbook inherits repo configuration, non-origin preflight, test gate, post deployment verification, error zones, and forge pull request merge path from the deployment runbook; the structural difference is that a hotfix branches from the production target branch rather than an origin branch.
+sanctioned_target_branch_paths:
+  - this hotfix runbook
+  - deployment runbook
+invocation_gate:
+  rule: This runbook runs only on Jason's explicit confirmation for this specific hotfix.
+  insufficient_authorization:
+    - standing instruction
+    - schedule
+    - general direction to keep production healthy
+    - agent judgment that a hotfix is due
+    - existence of a verified bug
+  if_hotfix_seems_warranted: Propose it in one message, name the bug, and stop before creating a branch, opening a pull request, or taking any other hotfix step.
+repo_configuration:
+  authority: Same as deployment; origin and target branches, release type, deterministic test gate, and post deployment verification list are authoritative and agent read only, changeable only with Jason's explicit confirmation.
+  items:
+    - origin and target branches
+    - release type
+    - deterministic test gate
+    - post deployment verification list
+invariants:
+  - This hotfix runbook and the deployment runbook are the only sanctioned ways an agent may change a protected target branch; the agent must not route around branch protection with direct commits, direct pushes, manual merges, or connector operations outside those runbooks.
+  - The agent never modifies repo deployment configuration without Jason's explicit confirmation.
+  - A hotfix reaches the target branch only through the forge pull request path, using the connector merge; the agent never uses raw git to merge to a protected target.
+  - The target merge is gated by branch protection requiring all required status checks to pass and requiring the hotfix branch to be up to date with the target before merge.
+  - Persistent branches never originate a pull request; a pull request whose head is a persistent branch remains an error state for Jason to diagnose.
+  - The sync of the target back into the origin is always a local git merge and push, never a pull request.
+  - Error autonomy is zoned; on the hotfix branch the agent may fix and retry, and from the merge onward the agent stops and reports.
+  - A hotfix is opened only for a specific verified bug that requires a code change, and its resolution is the entire scope of the change; no unrelated work rides along.
+preflight:
+  blocking: true
+  order:
+    - name: authorization
+      gate: Confirm directly with Jason that this specific hotfix is authorized and is to run now before any other check or action.
+      if_absent: Stop and ask.
+    - name: repo follows GitFlow
+      gate: Confirm the repo follows GitFlow and its release configuration is readable.
+    - name: release type
+      gate: Confirm release type is declared, including whether this hotfix bumps a version.
+    - name: deterministic test gate
+      gate: Confirm pull request automatic tests and any agent-run tests are declared with deterministic pass conditions.
+    - name: post deployment verification list
+      gate: Confirm the repo declares post deployment verification artifacts, locations, and workflows.
+    - name: verified bug
+      gate: Confirm a specific bug is verified, requires a code change, and its resolution is the target of this hotfix; a merely reported or suspected bug is not enough.
+    - name: branch origin
+      gate: Confirm the hotfix branches from the production target branch, not from dev or another origin branch.
+    - name: version
+      gate: Confirm the hotfix is a patch bump unless the repo release type permits a declared no-bump hotfix.
+    - name: target health
+      gate: Confirm the target branch is in a known good state before branching.
+workflow:
+  hotfix_branch_phase:
+    autonomy: The agent may fix and retry failures with commits scoped to the verified bug on the hotfix branch.
+    steps:
+      - Determine the version; for a hotfix this is always a patch bump unless the repo permits and this is a declared no-bump hotfix.
+      - Create the hotfix branch from the target branch tip, named hotfix/ plus the version, and push it with git.
+      - Apply the fix scoped to the identified bug only, plus the patch version bump and changelog when applicable, then commit and push.
+      - Open the pull request from the hotfix branch into the target branch with the forge connector and record the pull request number.
+      - While automatic tests run, perform any required agent-run tests, then poll and collect pull request status; if the target branch has advanced since branching, bring target commits into the hotfix branch, resolve conflicts and refactor as needed, and rerun tests.
+      - Evaluate all results against the deterministic gate; if it fails, make commits scoped to the bug, push, and retry, escalating only when the agent cannot resolve the failure.
+  deployment_phase:
+    autonomy: From merge onward, any error stops the agent for read-only diagnosis and a report to Jason.
+    steps:
+      - Merge the pull request into the target branch with the forge connector, wait, then verify merge state.
+      - Run post deployment verification against the repo list by confirming the merge, declared deploy workflows, tags, and each declared artifact in its declared location.
+      - Sync the target branch back into the origin with a local git merge and push, never a pull request; if a release branch is in flight, do not merge it here because the block-on-outdated gate will force that release branch to absorb the fix before it later merges.
+      - If the sync conflicts, stop and report the hotfix incomplete with a named follow-up owner, and do not start new work on the origin branch.
+      - Report the bug fixed, version or no-bump classification, pull request number, gate results, merge commit, deploy verification, sync result, and follow-ups to Jason.
+supporting_infrastructure:
+  branch_protection: Each target branch requires branch protection with all required status checks passing and the pull request branch up to date with the target before merge.
+  pull_request_head_guard: Every GitFlow repo has a required pull request guard workflow that fails when github.head_ref is a persistent origin or target branch.
+  pipeline_owned:
+    - tag
+    - deploy
+    - hotfix branch auto delete
+connector_operations:
+  gitea:
+    - create_pull_request
+    - update_pull_branch
+    - merge_pull_request
+    - is_pull_merged
+    - get_pull_request
+    - list_action_runs
+    - get_action_run
+    - list_refs
+    - read_file
+    - browse_tree
+    - list_workflows
+    - recent_commits
+  git_only:
+    - branch creation
+    - origin sync
+    - local merge of target into hotfix branch when update_pull_branch is unavailable
+waits:
+  - pull request tests
+  - branch update retest
+  - merge
+  - post deployment verification
+  - pushes
+closeout:
+  report:
+    - owning branch
+    - files added or changed
+    - canon version bump
+    - validation performed
+    - any recommended upward generalization

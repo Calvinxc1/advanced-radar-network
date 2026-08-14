@@ -1,0 +1,16 @@
+{
+  "name": "advanced-radar-network",
+  "version": "0.1.0",
+  "factorio_version": "2.1",
+  "title": "Advanced Radar Network",
+  "icon": "icon.png",
+  "author": "Jason M. Cherry",
+  "contact": "",
+  "homepage": "",
+  "description": "Splits radar into a tiered observation branch for local always-on visibility and a tiered reconnaissance branch for long-distance sector scanning, for Factorio 2.1 and Space Age.",
+  "dependencies": [
+    "base >= 2.1.0",
+    "space-age >= 2.1.0",
+    "? Toxic_biters"
+  ]
+}

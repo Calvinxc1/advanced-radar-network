@@ -1,0 +1,95 @@
+schema: factorio_local_workflow
+schema_version: 1
+mod_name: advanced-radar-network
+canonical_agent_name: Advanced Radar Network Factorio Modding Agent
+workspace_path: /home/jcherry/Documents/git/factorio-mods/advanced-radar-network
+metadata_path: src/info.json
+ownership_model: internal_mod
+upstream_or_fork_source: Standalone tiered radar progression for Factorio 2.1 and Space Age, graduated from tweak-heap.
+namespace_prefixes:
+  - arn_
+  - __advanced-radar-network__/
+dependency_stack:
+  - base >= 2.1.0
+  - space-age >= 2.1.0
+optional_dependencies:
+  - Toxic_biters
+scope_boundaries:
+  - Owns radar prototypes, progression, technologies, recipes, items, and entities for the observation and reconnaissance branches.
+  - Keep this repository focused on radar detection/visibility gameplay.
+  - Keep unrelated gameplay systems out of this repository unless Jason explicitly approves a scope expansion.
+  - Never depend on Krastorio2Assets or any other Krastorio2-published mod, optional or required. See declared_deviations below.
+release_target: Factorio 2.1 and Space Age mod releases.
+internal_gitflow_stage: full_gitflow
+branch_roles:
+  main: Release branch. Main validates on every push and publishes only when src/info.json version changes or public release recovery is needed.
+  dev: Long-lived integration branch for completed feature work.
+  feature: Short-lived feature/* branches created from dev and merged back to dev.
+  release: Short-lived release/* branches created from dev and merged to main.
+  hotfix: Short-lived hotfix/* branches created from main for urgent release-line fixes.
+release_promotion_path: dev -> release/<version-or-purpose> -> main -> dev
+feature_branching_enabled: true
+release_branching_enabled: true
+main_branch_protection:
+  enabled: unknown
+  notes: Not yet verified or configured in Gitea for this new repository; follow up with Jason before treating main as protected.
+feature_branch_base_requirements:
+  required_base: dev
+  pre_pr_verification:
+    - Fetch origin before opening a feature pull request.
+    - Verify the feature branch merge-base is origin/dev, not another feature branch.
+    - Verify the pull request base branch is dev.
+  required_commands:
+    - git fetch origin dev
+    - test "$(git merge-base HEAD origin/dev)" = "$(git rev-parse origin/dev)"
+    - confirm the pull request target/base branch is dev before creating or updating it.
+hotfix_flow:
+  enabled: true
+  branch_pattern: hotfix/<version-or-topic>
+  sync_requirements:
+    - Merge or cherry-pick hotfix results back to dev after main receives the fix.
+    - Evaluate any active release branch for the same fix before closing the hotfix.
+post_release_main_to_dev_sync:
+  required: true
+  mechanism: Manual merge or fast-forward from main back into dev unless validated automation is added later.
+  automation_validated: false
+  failure_owner: Jason or the acting release agent.
+ci_cd_release_gates:
+  validation: Pull-request CI validates release branches into main; main push workflow validates main.
+  packaging: Main push workflow packages only when release publication is enabled.
+  publishing: Main push workflow publishes on src/info.json version bumps and retries missing public destinations for an existing local release.
+  post_release_sync: Manual; no validated automation currently records main-to-dev sync.
+changelog_process:
+  format: Factorio mod portal changelog in src/changelog.txt.
+  pending_notes_mechanism: Merge summary must state no player-visible release impact or name the intended changelog bullet/category until a dedicated pending-notes mechanism exists.
+  top_version_must_match_metadata: true
+validation_available:
+  json: true
+  lua_syntax: true
+  lint: false
+  format: false
+  factorio_load: true
+declared_deviations:
+  - Post-release main-to-dev sync is manual until automation is implemented and validated.
+  - Repository CI secrets (Gitea/GitHub tokens, Discord webhook, Mod Portal credentials) and the GitHub mirror repository are not yet provisioned; deploy.yml will fail closed on those steps until Jason sets them up.
+  - Krastorio2Assets integration (present in tweak-heap's original code as an optional sentinel-graphics path) was deliberately not carried into this mod. Jason set this boundary on 2026-08-14 because of the Krastorio2 maintainer's stated position on AI-assisted mods; do not reintroduce any dependency, optional or required, on Krastorio2Assets or other Krastorio2-published mods without Jason explicitly reversing this decision.
+workspace_specific_rules:
+  - Start ordinary implementation branches from dev as feature/<topic>.
+  - Before opening or updating a feature pull request, verify the branch descends directly from origin/dev and the pull request base is dev.
+  - Merge feature branches back to dev after review and validation.
+  - Cut release branches from dev as release/<version-or-purpose>.
+  - Merge release branches to main, then sync main back to dev before starting new ordinary feature work.
+  - Do not open recurring dev-to-main pull requests.
+  - Do not publish, tag, upload, or create release artifacts outside explicit release work.
+migration_notes:
+  - Repository created 2026-08-14 as the standalone graduation target for tweak-heap's radar progression. Initial scaffold and migrated code landed on main as bootstrap commits before dev was branched off, matching the pattern observed in sibling advanced-* mod repositories' earliest history.
+last_stage_reviewed_at: 2026-08-14T00:00:00-07:00
+known_gaps:
+  - Post-release main-to-dev sync is manual until automation is implemented and validated.
+  - main branch protection status is unverified.
+  - No thumbnail.png has been created yet.
+  - "src/graphics/entity/observation-radar/observation-radar.png (icon) and observation-radar-world.png (placed entity picture) are both AI-generated temporary placeholder art (single static frame, no rotation) for observation radars' 2x2 footprint; not verified against a live in-game screenshot. They intentionally use different camera angles matching vanilla radar's own icon vs base/graphics/entity/radar/radar.png convention: the icon uses a shallow 3/4 'product shot' angle, the world sprite uses a steep near-overhead angle with a noticeably heavier/thicker base for physical presence. Jason rejected two earlier world-sprite attempts on 2026-08-14: one reused the icon file directly (looked like a floating inventory icon), one was generated fresh from a text prompt only (correct angle but a visually unrelated object design, since independent text-to-image calls don't preserve object identity). The version that worked passed the icon's own image URL as the `image` parameter (inspire workflow) with a prompt describing only the angle and mass change -- prefer that over a text-only prompt (under-changes the angle) or generating from scratch (loses object identity) for any future art iteration on this or other entities.
+    The world sprite's width/height/shift in helpers.lua are derived, not eyeballed. File is 335x360px with extra transparent headroom above the object only (object flush with the canvas bottom), object bbox measured at 252/335=75.2% of canvas width. Footprint went 1x1 -> 2x2 during development on 2026-08-14 (Jason: 'scaled up... occupies a two by two rather than a one by one'), collision_box/selection_box changed to match (see factorio-local-overlay.yaml). scale = (target_tile_width / 0.752) * 32 / 335, where target_tile_width is the object's intended true width in tiles (currently 2.0).
+    shift.y is derived directly from the selection_box geometry, not from an inherited offset: the entity's position is the center of its selection_box, so for a box of {{-N,-N},{N,N}} the bottom edge is at y=+N tile relative to position. Since the image is drawn centered at (position+shift) and the object is flush with the image's own bottom edge (no padding below it in the file), shift.y = N - (image_height_px * scale / 32) / 2 puts the object's visual base exactly on the footprint's bottom edge. Jason corrected this on 2026-08-14 -- an earlier pass used shift.y inherited from a one-off eyeballed value on the very first (differently-proportioned) square icon reuse, which put the base noticeably above the tile bottom once the footprint grew to 2x2; do not reuse that old ground_offset heuristic again, recompute from the selection_box the way described here. If the art file or footprint changes again: measure the new object bbox fraction, decide the new target tile width, recompute scale, then recompute shift.y from N and the new canvas_height_tile -- see the tile-grid mockups sent to Jason on 2026-08-14 (including the one with a reference line at the box's bottom edge) for worked examples."
+  - "Observation radar rotation animation: attempted and reverted on 2026-08-14, current state is a static single frame (direction_count=1). Two 2D techniques were tried against the world sprite's dish+arm+collar layer and both rejected by Jason after seeing an actual animated preview (a static per-frame check was not enough to catch the problem either time): (1) literal 2D in-plane rotation of the layer around a pivot -- rejected because an obliquely-viewed disc tumbles into visually wrong orientations when spun in its own 2D plane instead of appearing to turn around a vertical axis; (2) horizontal squash-by-abs(cos(theta))-with-mirror-flip-past-180deg ('spinning coin' trick) -- rejected by Jason as looking like the object was 'just flipping' along its x-axis, not rotating; the linear off-axis mount arm in particular does not transform believably under either technique. Do not retry either of these two specific techniques. Untried options if animation is revisited: (a) a small-angle back-and-forth scan sweep (e.g. +/-15-20 degrees) using technique (1), which may avoid the large-angle breakdown that killed it at a full 90/180/270 degree sweep, since small in-plane rotations of an oblique ellipse distort far less than large ones; (b) genuinely independent AI-generated keyframes at a few true rotation angles (not derived from a single 2D layer) blended with cross-fades, accepting the risk that independent generations won't perfectly match each other; (c) real 3D modeling tooling to re-render from multiple camera angles, which is outside what this workspace's AI image generation tool can do; (d) leave it static, which is the current shipped state and was already accepted as the world-sprite baseline before either rotation attempt. Always render and view an actual animated preview (GIF or equivalent) before presenting a rotation approach as done -- a handful of static per-frame checks did not surface either rejection."
+notes: This local workflow file is the repo-specific source of truth for GitFlow stage and branch roles.

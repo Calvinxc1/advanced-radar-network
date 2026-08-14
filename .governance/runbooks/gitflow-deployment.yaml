@@ -1,0 +1,112 @@
+id: gitflow_deployment_runbook
+status: ratified
+scope: coding_agents
+summary: On-demand runbook for a coding agent performing a GitFlow release from a declared origin branch to a declared target branch.
+applies_to: GitFlow release promotion from a repo origin branch to its target branch.
+does_not_cover: Hotfixes, which require a separate runbook.
+sanctioned_target_branch_paths:
+  - this deployment runbook
+  - hotfix runbook
+invocation_gate:
+  rule: This runbook runs only on Jason's explicit confirmation for this specific release.
+  insufficient_authorization:
+    - standing instruction
+    - schedule
+    - general direction to keep things shipped
+    - agent judgment that a release is due
+  if_deployment_seems_warranted: Propose it in one message and stop before creating a branch, opening a pull request, or taking any other release step.
+repo_configuration:
+  authority: Every item is defined in the repo and is authoritative; the agent reads it and never changes it without Jason's explicit confirmation.
+  items:
+    - name: origin and target branches
+      default: dev as origin and main as target on any initialized coding repo.
+      rule: Multiple origins or targets, or changed defaults, require Jason's confirmation.
+    - name: release type
+      rule: The repo declares which artifacts are versioned and which are not, and whether a release includes a version bump.
+    - name: test gate
+      rule: The repo declares release tests and deterministic pass conditions, split between pull request automatic tests and tests the agent must run.
+    - name: post deployment verification list
+      rule: The repo declares deployment artifacts, their locations, and deploy workflows the agent must verify after merge.
+invariants:
+  - This deployment runbook and the hotfix runbook are the only sanctioned ways an agent may change a protected target branch; the agent must not route around branch protection with direct commits, direct pushes, manual merges, or connector operations outside those runbooks.
+  - The agent never modifies repo deployment configuration without Jason's explicit confirmation.
+  - A release reaches a target branch only through the forge pull request path, using the connector merge; the agent never merges to a protected target with raw git.
+  - A target branch merge is gated by branch protection requiring all required status checks to pass; the agent does not merge until the gate is green.
+  - Persistent origin and target branches never originate a pull request; a pull request whose head is a persistent branch is an error state blocked by a required guard check and left standing for Jason to diagnose.
+  - The sync of the target branch back into the origin branch is always a local git merge and push, never a pull request.
+  - Error autonomy is zoned; on the release branch the agent may fix and retry, and from the merge onward the agent stops and reports.
+preflight:
+  blocking: true
+  order:
+    - name: authorization
+      gate: Confirm directly with Jason that this specific release is authorized and is to run now before any other check or action.
+      if_absent: Stop and ask.
+    - name: repo follows GitFlow
+      gate: Confirm the repo follows GitFlow and its release configuration is readable.
+    - name: origin and target branches
+      gate: Confirm origin and target branches are declared, or that defaults dev and main apply.
+    - name: release type
+      gate: Confirm release type is declared, including whether this release bumps a version.
+    - name: deterministic test gate
+      gate: Confirm pull request automatic tests and any agent-run tests are declared with deterministic pass conditions.
+    - name: post deployment verification list
+      gate: Confirm the repo declares post deployment verification artifacts, locations, and workflows.
+    - name: release origin
+      gate: Confirm origin is one of the repo-declared origin branches; reject feature branches or undeclared branches.
+    - name: release classification
+      gate: If the release bumps a version, determine version and semver level from changelog and commits, asking Jason when ambiguous; otherwise choose a branch under release/.
+    - name: origin health
+      gate: Confirm the origin branch is in a known good state before cutting the release branch.
+workflow:
+  release_branch_phase:
+    autonomy: The agent may fix and retry failures with bug-fix-only commits on the release branch.
+    steps:
+      - Create the release branch from the origin branch tip and push it with git because the Gitea connector may not expose branch creation.
+      - Make release branch commits; for a version bump, finalize version and changelog, and for no bump, apply the authorized release changes.
+      - Open the pull request from the release branch into the target branch with the forge connector and record the pull request number.
+      - While automatic tests run, perform any required agent-run tests, then poll pull request tests and collect status; if the target branch has advanced since branching, bring target commits into the release branch and rerun tests.
+      - Evaluate all results against the deterministic gate; if it fails, make bug-fix-only release branch commits, push, and retry, escalating only when the agent cannot resolve the failure.
+  deployment_phase:
+    autonomy: From merge onward, any error stops the agent for read-only diagnosis and a report to Jason.
+    steps:
+      - Merge the pull request into the target branch with the forge connector, wait, then verify merge state.
+      - Run post deployment verification against the repo list by confirming the merge, declared deploy workflows, tags, and each declared artifact in its declared location.
+      - Sync the target branch back into the origin branch with a local git merge and push, never a pull request; if it conflicts, stop and report the release incomplete with a named follow-up owner.
+      - Report release type, version or no-bump classification, pull request number, gate results, merge commit, deploy verification, sync result, and follow-ups to Jason.
+supporting_infrastructure:
+  branch_protection: Each target branch requires branch protection with all required status checks passing and the pull request branch up to date with the target before merge.
+  pull_request_head_guard: Every GitFlow repo has a required pull request guard workflow that fails when github.head_ref is a persistent origin or target branch.
+  pipeline_owned:
+    - tag
+    - deploy
+    - release branch auto delete
+connector_operations:
+  gitea:
+    - create_pull_request
+    - update_pull_branch
+    - merge_pull_request
+    - is_pull_merged
+    - get_pull_request
+    - list_action_runs
+    - get_action_run
+    - list_refs
+    - read_file
+    - browse_tree
+    - list_workflows
+    - recent_commits
+  git_only:
+    - branch creation
+    - origin sync
+    - local merge of target into release branch when update_pull_branch is unavailable
+waits:
+  - pull request tests
+  - merge
+  - post deployment verification
+  - pushes
+closeout:
+  report:
+    - owning branch
+    - files added or changed
+    - canon version bump
+    - validation performed
+    - any recommended upward generalization
