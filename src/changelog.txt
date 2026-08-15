@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.1
+Date: 2026.08.15
+  Changes
+    - Replaced observation radar's temporary placeholder art with a rendered model: a proper inventory/tech-tree icon and a full 16-frame, 360-degree dish rotation animation for the placed entity. No gameplay, progression, or balance changes.
+
+---------------------------------------------------------------------------------------------------
 Version: 0.1.0
 Date: 2026.08.14
   Changes
