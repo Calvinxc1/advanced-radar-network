@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.2.0
+Date: 2026.08.24
+  Compatibility:
+    - Made Space Age an optional dependency, so the mod now loads on base Factorio 2.1.
+  Changes:
+    - Restricted Observation Radar III and Reconnaissance Radar III to Space Age, since their recipes need supercapacitor and quantum processor and their research needs electromagnetic and cryogenic science.
+    - Kept both tier I and tier II radars available without Space Age, including Reconnaissance Radar II.
+    - Derived each branch's next_upgrade chain from the tiers that actually exist rather than from a fixed tier count, so the chains terminate correctly in both loads.
+---------------------------------------------------------------------------------------------------
 Version: 0.1.1
 Date: 2026.08.15
   Changes
