@@ -1,18 +1,22 @@
 # Advanced Radar Network
 
-Advanced Radar Network is a Factorio 2.1 + Space Age mod that splits vanilla radar's two jobs, local visibility and long-range scanning, into two separate progressions instead of one entity that does both adequately.
+Advanced Radar Network is a Factorio 2.1 mod that splits vanilla radar's two jobs, local visibility and long-range scanning, into two separate progressions instead of one entity that does both adequately.
 
 Vanilla radar bundles always-on local visibility with periodic long-range sector scanning. This mod adds an observation branch that trades away scanning for strong local visibility, and a reconnaissance branch that trades away local visibility for fast, far-reaching scanning, so covering a base and finding distant resources become deliberate, separately-upgradable investments.
 
 ## Requirements
 
 - Factorio 2.1.
-- Space Age.
+- Optional Space Age integration, which adds a third tier to each branch.
 
 ## Features
 
-- Three-tier observation radar progression for compact, always-on local visibility with no long-range scanning; Observation Radar I replaces the vanilla radar entity and technology in place, so new and existing games transition straight from vanilla radar into it.
-- Three-tier reconnaissance radar progression for long-distance sector scanning with a minimal local visibility floor, fully independent of the vanilla radar tech position.
+- Three-tier observation radar progression (two without Space Age) for compact, always-on local visibility with no long-range scanning; Observation Radar I replaces the vanilla radar entity and technology in place, so new and existing games transition straight from vanilla radar into it.
+- Three-tier reconnaissance radar progression (two without Space Age) for long-distance sector scanning with a minimal local visibility floor, fully independent of the vanilla radar tech position.
+
+### Without Space Age
+
+Both branches stop at tier II. Tier III of each is built from supercapacitor and quantum processor and researched with electromagnetic and cryogenic science, none of which the base game supplies. Every other tier, including Reconnaissance Radar II, is unchanged.
 - Independent `fast_replaceable_group` and `next_upgrade` chains per branch, so within-branch upgrades are a drag-and-replace.
 - Observation radars use a 2x2 footprint (reconnaissance radars keep vanilla radar's 3x3 footprint). All six radar tiers use temporary placeholder art; observation radars use a separate icon and world sprite, matching vanilla radar's own convention: a shallow 3/4-angle icon for inventory/tech tree slots, and a steep near-overhead camera angle with a grounded contact shadow for the placed entity. The placed entity is currently a static single frame (unlike vanilla radar's rotating dish); see docs/radar-network-benchmark.md for why a rotation animation hasn't landed yet. No third-party asset mod dependency.
 
