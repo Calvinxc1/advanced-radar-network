@@ -2,7 +2,7 @@
 -- observation/entities.lua mutates data.raw.radar["radar"] in place into
 -- Observation Radar I. Recon uses this as its graphics/box template so it
 -- keeps vanilla's original 3x3 footprint and layered dish+shadow animation
--- instead of inheriting Observation I's 1x1 footprint and placeholder art.
+-- instead of inheriting Observation I's 2x2 footprint and rendered art.
 -- require() caches this module, so whichever file requires it first runs
 -- this body -- radar.lua requires it before observation, guaranteeing the
 -- snapshot happens first.

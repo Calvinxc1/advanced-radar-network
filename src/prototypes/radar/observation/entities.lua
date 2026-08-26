@@ -5,7 +5,15 @@ local vanilla_radar = data.raw.radar["radar"]
 
 for _, spec in pairs(constants.observation_specs) do
   local locale_name = "arn_observation-radar-" .. spec.tier
-  local next_name = spec.tier < 3 and "arn_observation-radar-" .. (spec.tier + 1) or nil
+  -- Derived from the spec table rather than a fixed tier count: without Space
+  -- Age the table stops at tier II, and the chain has to stop with it.
+  local next_tier_exists = false
+  for _, other in ipairs(constants.observation_specs) do
+    if other.tier == spec.tier + 1 then
+      next_tier_exists = true
+    end
+  end
+  local next_name = next_tier_exists and "arn_observation-radar-" .. (spec.tier + 1) or nil
 
   -- Observation radar I replaces the vanilla radar entity in place rather
   -- than adding a new prototype (its internal name stays "radar"; only the

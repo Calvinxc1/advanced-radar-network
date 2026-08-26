@@ -9,11 +9,19 @@ local vanilla_snapshot = require("prototypes.radar.vanilla_snapshot")
 -- (original 3x3 footprint, layered dish+shadow animation, integration
 -- patch, water reflection, circuit connector all intact), not the live
 -- data.raw.radar["radar"], which by this point is Observation I's mutated
--- 1x1 footprint with placeholder art.
+-- 2x2 footprint with the rendered observation art.
 for _, spec in pairs(constants.recon_specs) do
   local name = "arn_recon-radar-" .. spec.tier
   local previous_name = spec.tier > 1 and "arn_recon-radar-" .. (spec.tier - 1) or nil
-  local next_name = spec.tier < 3 and "arn_recon-radar-" .. (spec.tier + 1) or nil
+  -- Derived from the spec table rather than a fixed tier count: without Space
+  -- Age the table stops at tier II, and the chain has to stop with it.
+  local next_tier_exists = false
+  for _, other in ipairs(constants.recon_specs) do
+    if other.tier == spec.tier + 1 then
+      next_tier_exists = true
+    end
+  end
+  local next_name = next_tier_exists and "arn_recon-radar-" .. (spec.tier + 1) or nil
 
   local radar = util.table.deepcopy(vanilla_snapshot)
   radar.name = name

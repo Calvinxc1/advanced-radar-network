@@ -1,13 +1,37 @@
+local has_space_age = mods["space-age"] ~= nil
+
 local function science_pack(name)
   return { name, 1 }
+end
+
+-- Drops the tiers that only exist under Space Age. Tier III of both ladders is
+-- built from supercapacitor and quantum processor and researched with
+-- electromagnetic and cryogenic science, none of which the base game supplies,
+-- so both ladders stop at tier II without the expansion. Filtering the specs
+-- here is the whole of it: entities, items, recipes, and technologies are all
+-- generated from these tables, and the next_upgrade chains are derived from
+-- what a table actually contains rather than from a fixed tier count.
+local function available(specs)
+  if has_space_age then
+    return specs
+  end
+
+  local result = {}
+  for _, spec in ipairs(specs) do
+    if not spec.space_age then
+      table.insert(result, spec)
+    end
+  end
+
+  return result
 end
 
 -- Observation radar I is the vanilla "radar" entity/item/recipe/technology,
 -- mutated in place (see observation/entities.lua etc.) rather than a new
 -- prototype, so existing saves transition straight from vanilla radar into
--- it. It still gets the same 1x1 footprint and placeholder art as tiers II
--- and III -- Factorio's next_upgrade chain requires every step to share the
--- same bounding box, so a 3x3 tier I feeding into a 1x1 tier II is invalid.
+-- it. It still gets the same 2x2 footprint and rendered art as tiers II and
+-- III -- Factorio's next_upgrade chain requires every step to share the same
+-- bounding box, so a 3x3 tier I feeding into a 2x2 tier II is invalid.
 local observation_specs = {
   {
     tier = 1,
@@ -50,6 +74,7 @@ local observation_specs = {
   },
   {
     tier = 3,
+    space_age = true,
     range = 10,
     energy_usage = "1MW",
     ingredients = {
@@ -131,6 +156,7 @@ local recon_specs = {
   },
   {
     tier = 3,
+    space_age = true,
     scan_range = 40,
     nearby_range = 5,
     energy_usage = "6MW",
@@ -161,6 +187,7 @@ local recon_specs = {
 
 return {
   science_pack = science_pack,
-  observation_specs = observation_specs,
-  recon_specs = recon_specs,
+  has_space_age = has_space_age,
+  observation_specs = available(observation_specs),
+  recon_specs = available(recon_specs),
 }
