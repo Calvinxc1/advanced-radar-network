@@ -52,7 +52,13 @@ class DependencyNamesTest(unittest.TestCase):
         # pulled in, since that graph can reach arbitrarily far across the
         # Mod Portal (e.g. a hidden-optional compatibility shim several hops
         # away with no Factorio-version-compatible release).
-        with patch.object(DOWNLOADER, "download_mod_closure") as download_mod:
+        # optional-mod is probed before download so an optional dependency that
+        # could not load here is skipped; it declares nothing, so it survives.
+        satisfiable = {"info_json": {"dependencies": ["base >= 2.1.0"]}}
+
+        with patch.object(DOWNLOADER, "latest_compatible_release", return_value=satisfiable), patch.object(
+            DOWNLOADER, "download_mod_closure"
+        ) as download_mod:
             DOWNLOADER.download_info_dependency_closure(
                 {
                     "name": "local-mod",
@@ -69,6 +75,80 @@ class DependencyNamesTest(unittest.TestCase):
             self.assertFalse(call.kwargs["include_dependencies"])
             self.assertTrue(call.kwargs["include_optional_dependencies"])
             self.assertEqual(call.kwargs["visited"], {"local-mod"})
+
+
+class UnsatisfiableOptionalDependencyTest(unittest.TestCase):
+    def test_optional_dependency_with_unmet_requirements_is_skipped(self) -> None:
+        # An optional dependency's own graph is never resolved, so downloading
+        # one that carries hard requirements would install it without them and
+        # abort the validation load.
+        release = {
+            "info_json": {
+                "dependencies": ["base >= 2.1.0", "heavy-required-mod", "another-required-mod"],
+            }
+        }
+
+        with patch.object(DOWNLOADER, "latest_compatible_release", return_value=release), patch.object(
+            DOWNLOADER, "download_mod_closure"
+        ) as download_mod:
+            DOWNLOADER.download_info_dependency_closure(
+                {"name": "local-mod", "dependencies": ["base", "? heavy-optional-mod"]},
+                factorio_version="2.1",
+                mods_dir=Path("/tmp/mods"),
+                username="user",
+                token="token",
+            )
+
+        self.assertEqual(download_mod.call_args_list, [])
+
+    def test_optional_dependency_incompatible_with_a_builtin_is_skipped(self) -> None:
+        release = {"info_json": {"dependencies": ["base >= 2.1.0", "! space-age"]}}
+
+        with patch.object(DOWNLOADER, "latest_compatible_release", return_value=release), patch.object(
+            DOWNLOADER, "download_mod_closure"
+        ) as download_mod:
+            DOWNLOADER.download_info_dependency_closure(
+                {"name": "local-mod", "dependencies": ["base", "? vanilla-only-mod"]},
+                factorio_version="2.1",
+                mods_dir=Path("/tmp/mods"),
+                username="user",
+                token="token",
+            )
+
+        self.assertEqual(download_mod.call_args_list, [])
+
+    def test_satisfiable_optional_dependency_is_still_downloaded(self) -> None:
+        release = {"info_json": {"dependencies": ["base >= 2.1.0"]}}
+
+        with patch.object(DOWNLOADER, "latest_compatible_release", return_value=release), patch.object(
+            DOWNLOADER, "download_mod_closure"
+        ) as download_mod:
+            DOWNLOADER.download_info_dependency_closure(
+                {"name": "local-mod", "dependencies": ["base", "? light-optional-mod"]},
+                factorio_version="2.1",
+                mods_dir=Path("/tmp/mods"),
+                username="user",
+                token="token",
+            )
+
+        self.assertEqual([call.args[0] for call in download_mod.call_args_list], ["light-optional-mod"])
+
+    def test_a_required_dependency_is_never_skipped(self) -> None:
+        # Only optional dependencies are filtered; a hard requirement must be
+        # downloaded even if its own graph is not resolved here.
+        with patch.object(DOWNLOADER, "latest_compatible_release") as release, patch.object(
+            DOWNLOADER, "download_mod_closure"
+        ) as download_mod:
+            DOWNLOADER.download_info_dependency_closure(
+                {"name": "local-mod", "dependencies": ["base", "hard-required-mod"]},
+                factorio_version="2.1",
+                mods_dir=Path("/tmp/mods"),
+                username="user",
+                token="token",
+            )
+
+        self.assertEqual([call.args[0] for call in download_mod.call_args_list], ["hard-required-mod"])
+        release.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -66,6 +66,29 @@ def dependency_names(info_json: dict, include_optional: bool) -> list[str]:
     return names
 
 
+def unsatisfiable_optional_reason(info_json: dict, available: set[str]) -> str | None:
+    """Explain why an optional dependency cannot load in this closure, or None.
+
+    Optional dependencies are downloaded but their own graph is deliberately not
+    resolved, so an optional mod carrying hard requirements of its own would be
+    installed without them and abort the load. The same applies to an optional
+    mod that declares itself incompatible with a built-in the validation run
+    always enables.
+    """
+    missing = sorted(
+        name for name in dependency_names(info_json, include_optional=False) if name not in available
+    )
+    if missing:
+        return "requires " + ", ".join(missing) + ", which this closure does not download"
+
+    for dependency in info_json.get("dependencies", []):
+        match = DEPENDENCY_PATTERN.match(dependency)
+        if match and match.group("prefix") == "!" and match.group("name") in BUILTIN_MODS:
+            return f"is incompatible with {match.group('name')}"
+
+    return None
+
+
 def read_info_json(info_path: Path) -> dict:
     try:
         info = json.loads(info_path.read_text(encoding="utf-8"))
@@ -178,8 +201,26 @@ def download_info_dependency_closure(
     # since that graph can reach arbitrarily far across the Mod Portal (e.g.
     # a hidden-optional compatibility shim several hops away with no
     # Factorio-version-compatible release).
+    #
+    # Because that graph is not resolved, an optional dependency that carries
+    # hard requirements of its own would be installed without them and abort
+    # the validation load. Such optional dependencies are skipped rather than
+    # downloaded; declaring one is a load-order statement about real games,
+    # not a claim that it can be exercised here.
     visited = {info["name"]}
-    for dependency in dependency_names(info, include_optional=True):
+    required = set(dependency_names(info, include_optional=False))
+    declared = dependency_names(info, include_optional=True)
+    available = BUILTIN_MODS | {info["name"]} | set(declared)
+
+    for dependency in declared:
+        if dependency not in required:
+            release = latest_compatible_release(dependency, factorio_version)
+            reason = unsatisfiable_optional_reason(release.get("info_json", {}), available)
+            if reason is not None:
+                print(f"Skipped optional dependency {dependency}: it {reason}")
+                visited.add(dependency)
+                continue
+
         download_mod_closure(
             dependency,
             factorio_version=factorio_version,
