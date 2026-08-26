@@ -29,9 +29,9 @@ end
 -- Observation radar I is the vanilla "radar" entity/item/recipe/technology,
 -- mutated in place (see observation/entities.lua etc.) rather than a new
 -- prototype, so existing saves transition straight from vanilla radar into
--- it. It still gets the same 1x1 footprint and placeholder art as tiers II
--- and III -- Factorio's next_upgrade chain requires every step to share the
--- same bounding box, so a 3x3 tier I feeding into a 1x1 tier II is invalid.
+-- it. It still gets the same 2x2 footprint and rendered art as tiers II and
+-- III -- Factorio's next_upgrade chain requires every step to share the same
+-- bounding box, so a 3x3 tier I feeding into a 2x2 tier II is invalid.
 local observation_specs = {
   {
     tier = 1,

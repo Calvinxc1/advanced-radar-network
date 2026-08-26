@@ -1,13 +1,14 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0
-Date: 2026.08.24
+Date: 2026.08.25
   Compatibility:
-    - Made Space Age an optional dependency, so the mod now loads on base Factorio 2.1.
+    - Space Age is now optional. The mod loads on base Factorio 2.1, where each branch runs to tier II.
+    - Observation Radar III and Reconnaissance Radar III require Space Age, because they are built from supercapacitor and quantum processor and researched with electromagnetic and cryogenic science. With Space Age installed, both branches are unchanged.
   Changes:
-    - Restricted Observation Radar III and Reconnaissance Radar III to Space Age, since their recipes need supercapacitor and quantum processor and their research needs electromagnetic and cryogenic science.
-    - Kept both tier I and tier II radars available without Space Age, including Reconnaissance Radar II.
-    - Derived each branch's next_upgrade chain from the tiers that actually exist rather than from a fixed tier count, so the chains terminate correctly in both loads.
-    - Gave the radars their own crafting menu row, observation tiers followed by reconnaissance tiers. Both ladders previously adopted the vanilla radar's subgroup at load time, so they shared a row with walls, gates and turrets, and would have followed the vanilla radar anywhere another mod moved it.
+    - The radars now have their own crafting menu row, observation tiers first and then reconnaissance tiers. They previously sat in vanilla's defensive-structure row alongside walls, gates and land mines, and would have followed the vanilla radar there if another mod moved it.
+  Bugfixes:
+    - Fixed the 0.1.1 and 0.1.0 entries below not rendering in the in-game changelog. Their category lines were missing the trailing colon the Factorio changelog format requires, which made the parser reject everything beneath them.
+
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.1
 Date: 2026.08.15
