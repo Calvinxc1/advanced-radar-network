@@ -15,6 +15,13 @@ GITHUB_API_URL = "https://api.github.com"
 GITHUB_UPLOADS_URL = "https://uploads.github.com"
 GITHUB_API_VERSION = "2022-11-28"
 
+# GitHub has been observed to create the underlying git tag as a side effect of
+# a release-creation POST, then reject that same call with 422 "Published
+# releases must have a valid tag" -- apparently a tag/commit indexing race on
+# GitHub's end, not anything wrong with the request. A short retry clears it.
+INVALID_TAG_RETRY_ATTEMPTS = 5
+INVALID_TAG_RETRY_DELAY_SECONDS = 10
+
 
 class ApiError(RuntimeError):
     def __init__(self, status: int, body: str):
@@ -103,6 +110,20 @@ def wait_for_commit(token: str, repo: str, target: str, attempts: int, delay_sec
             time.sleep(delay_seconds)
 
 
+def _is_invalid_tag_error(error: ApiError) -> bool:
+    if error.status != 422:
+        return False
+    try:
+        body = json.loads(error.body)
+    except json.JSONDecodeError:
+        return False
+    return any(
+        "valid tag" in str(entry.get("message", ""))
+        for entry in body.get("errors", [])
+        if isinstance(entry, dict)
+    )
+
+
 def create_or_update_release(args: argparse.Namespace, token: str) -> dict:
     body = args.body_file.read_text(encoding="utf-8") if args.body_file else ""
     existing = release_by_tag(token, args.repo, args.tag)
@@ -131,21 +152,31 @@ def create_or_update_release(args: argparse.Namespace, token: str) -> dict:
         print(f"Updated GitHub release {args.tag}.")
         return response
 
-    try:
-        response = api_request(
-            token,
-            "POST",
-            github_url(f"/repos/{args.repo}/releases"),
-            body=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-        )
-    except ApiError as error:
-        if error.status == 422:
+    for attempt in range(1, INVALID_TAG_RETRY_ATTEMPTS + 1):
+        try:
+            response = api_request(
+                token,
+                "POST",
+                github_url(f"/repos/{args.repo}/releases"),
+                body=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+        except ApiError as error:
             release = release_by_tag(token, args.repo, args.tag)
             if release:
                 print(f"Using GitHub release {args.tag} created by another run.")
                 return release
-        raise
+            if _is_invalid_tag_error(error) and attempt < INVALID_TAG_RETRY_ATTEMPTS:
+                print(
+                    f"GitHub rejected tag {args.tag!r} as invalid on attempt "
+                    f"{attempt}/{INVALID_TAG_RETRY_ATTEMPTS} (likely tag/commit "
+                    f"indexing lag on GitHub's end); retrying."
+                )
+                time.sleep(INVALID_TAG_RETRY_DELAY_SECONDS)
+                continue
+            raise
+        else:
+            break
 
     if not isinstance(response, dict) or "id" not in response:
         fail(f"Create release did not return a release id: {response}")
