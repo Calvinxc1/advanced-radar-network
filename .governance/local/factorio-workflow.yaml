@@ -14,6 +14,9 @@ dependency_stack:
   - space-age >= 2.1.0
 optional_dependencies:
   - Toxic_biters
+incompatible_mods:
+  - Krastorio2
+  - Krastorio2-spaced-out
 scope_boundaries:
   - Owns radar prototypes, progression, technologies, recipes, items, and entities for the observation and reconnaissance branches.
   - Keep this repository focused on radar detection/visibility gameplay.
