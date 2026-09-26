@@ -12,6 +12,9 @@ dependency_stack:
   - space-age >= 2.1.0
 optional_dependencies:
   - Toxic_biters
+incompatible_mods:
+  - Krastorio2
+  - Krastorio2-spaced-out
 upstream_or_fork_source: Standalone tiered radar progression for Factorio 2.1 and Space Age, graduated from tweak-heap's incubation layer; inspired by the K2/Space Exploration observation-vs-scanning radar split but original code.
 scope_boundaries:
   - Owns the radar prototypes, progression, technologies, recipes, items, and entities split into an observation branch (local always-on visibility, no long-range scanning) and a reconnaissance branch (long-range sector scanning, minimal local visibility).
@@ -40,6 +43,7 @@ workspace_specific_rules:
   - Keep the top src/changelog.txt Version entry synchronized with src/info.json; scripts/validate.sh enforces this.
   - Keep prototype and locale names under the arn_ prefix unless Jason explicitly approves a namespace migration.
   - Do not add a dependency, optional or required, on Krastorio2Assets or any other Krastorio2-published mod. Jason declared this a hard boundary on 2026-08-14 given the Krastorio2 maintainer's stated position on AI-assisted mods; this mod must stay entirely independent of that mod family.
+  - src/info.json declares "! Krastorio2" and "! Krastorio2-spaced-out" as hard incompatibilities, added at Jason's request on 2026-09-25. An incompatibility entry is an exclusion, not a dependency, so it upholds the Krastorio2 boundary above rather than crossing it.
   - Observation Radar I (not Reconnaissance) owns the vanilla data.raw.radar.radar entity/item/technology/recipe mutation-in-place role. Jason confirmed this direction on 2026-08-14: the close-visibility/no-scanning branch replaces vanilla radar; Reconnaissance is a fully independent three-tier line with its own new Reconnaissance I prototype, unlocked as a parallel choice to Observation II rather than a prerequisite of it.
   - When mutating the shared vanilla data.raw.radar.radar entity/item/technology/recipe in place (Observation I), never nil out the singular icon/icon_size fields even after setting icons. Other mods (observed: Toxic Biters' tb_infected_radar) read data.raw.radar.radar.icon/icon_size directly when building their own prototypes from the vanilla radar, and nil-ing those fields breaks their load even though this mod's own rendering only needs icons. Adding new arn_-prefixed prototypes has no such risk since nothing else references those names.
   - src/info.json declares "? Toxic_biters" so Toxic Biters loads first and its tb_infected_radar read of data.raw.radar.radar.icon/.icon_size happens against a known-good, not-yet-mutated vanilla radar. Jason confirmed on 2026-08-14 he wants Toxic Biters compatibility kept even though tweak-heap itself stays disabled in his local install.

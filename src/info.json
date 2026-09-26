@@ -12,6 +12,8 @@
     "base >= 2.1.0",
     "? space-age >= 2.1.0",
     "? Toxic_biters",
-    "? warptorio3_2_expansion"
+    "? warptorio3_2_expansion",
+    "! Krastorio2",
+    "! Krastorio2-spaced-out"
   ]
 }
